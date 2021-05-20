@@ -8,13 +8,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Title</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    {% load bootstrap3 %}
+    {% bootstrap_css %}
+
 </head>
 <body>
 
-{% load bootstrap3 %}
+
 <table>
 {% for tab in table %}
-
+{% bootstrap_form form %}
     <th>
         <td>
     {{ tab.date }}
