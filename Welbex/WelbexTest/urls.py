@@ -1,8 +1,8 @@
 from django.urls import path
-from .views import WelView
+from .views import TableView
 
 
 
 urlpatterns = [
-    path('', WelView.as_view())
+    path('', TableView)
 ]
