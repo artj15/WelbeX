@@ -38,3 +38,5 @@ th.sorted[data-order="-1"]::after {
 th.sorted[data-order="1"]::after {
 	content: "▲"
 }
+
+
