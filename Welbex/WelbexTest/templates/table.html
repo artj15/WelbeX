@@ -1,17 +1,13 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Title</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css"/>
     <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
-        {% load static %}
+    {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}"/>
 
     {% load bootstrap3 %}
@@ -20,33 +16,11 @@
 </head>
 <body>
 
-
-<script>
-var filtname;
-var filtvalue;
-var temp;
-function filt() {
-    temp = document.getElementById("all_select");
-    filtname = temp.options[temp.selectedIndex].text;
-    filtvalue = document.getElementById("input_value").value;
-}
+<div class="container"
+">
 
 
-$(document).ready(function() {
-    $('#table-id').DataTable( {
-        "pagingType": "full_numbers",
-        "order": [[1, "asc"]],
-        "aoColumnDefs": [
-           {
-               "bSortable": false,
-               "aTargets": ["sorting_disabled"]
-           }
-                        ]
-    } );
-} );
-
-</script>
-<select id="all_select">
+<select id="fil_select">
     <option id="fil_data">
         data
     </option>
@@ -59,47 +33,396 @@ $(document).ready(function() {
     <option id="fil_dist">
         distance
     </option>
-</select> <input id="input_value"> <button onclick="filt()" type = "submit">Фильтровать</button>
-
+</select>
+<select id="all_select">
+    <option value="=" id="fil_equals">
+        равно
+    </option>
+    <option value="in" id="fil_contains">
+        содержит
+    </option>
+    <option value=">" id="fil_bigger">
+        больше
+    </option>
+    <option value="<" id="fil_smaller">
+        меньше
+    </option>
+</select><input id="input_value">
+<button onclick="filt()" type="submit">Фильтровать</button>
 
 
 <table class="table_sort" id="table-id">
     <thead>
-    <th class="sorting_disabled">
+    <th id="data">
         data
     </th>
-    <th>
-         name
+    <th id="name" class="to_sort">
+        name
 
     </th>
-    <th>
+    <th id="number" class="to_sort">
 
         number
     </th>
-    <th>
+    <th id="distance" class="to_sort">
         distance
 
     </th>
     </thead>
     <tbody>
-{% for tab in table %}
+    {% for tab in table %}
     <tr>
-        <td>
-    {{ tab.data }}
-</td>
-        <td>
-    {{ tab.name }}
-</td>
-        <td>
-    {{ tab.number }}
-</td>
-        <td>
-    {{ tab.distance }}
-</td>
-</tr>
+        <td id="data">
+            {{ tab.data }}
+        </td>
+        <td id="name">
+            {{ tab.name }}
+        </td>
+        <td id="number">
+            {{ tab.number }}
+        </td>
+        <td id="distance">
+            {{ tab.distance }}
+        </td>
+    </tr>
     {% endfor %}
     </tbody>
-    </table>
+</table>
+
+<div id="pageNavPosition" class="pager-nav"></div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const table = document.getElementById('table-id');
+        const headers = table.querySelectorAll('.to_sort');
+        const tableBody = table.querySelector('tbody');
+        const rows = tableBody.querySelectorAll('tr');
+
+        const directions = Array.from(headers).map(function (header) {
+            return '';
+        });
+
+        const transform = function (index, content) {
+            const type = headers[index].getAttribute('data-type');
+            switch (type) {
+                case 'number':
+                    return parseFloat(content);
+                case 'string':
+                default:
+                    return content;
+            }
+        };
+
+        const sortColumn = function (index) {
+            const direction = directions[index] || 'asc';
+
+            const multiplier = (direction === 'asc') ? 1 : -1;
+
+            const newRows = Array.from(rows);
+
+            newRows.sort(function (rowA, rowB) {
+                const cellA = rowA.querySelectorAll('td')[index].innerHTML;
+                const cellB = rowB.querySelectorAll('td')[index].innerHTML;
+
+                const a = transform(index, cellA);
+                const b = transform(index, cellB);
+
+                switch (true) {
+                    case a > b:
+                        return 1 * multiplier;
+                    case a < b:
+                        return -1 * multiplier;
+                    case a === b:
+                        return 0;
+                }
+            });
+
+            [].forEach.call(rows, function (row) {
+                tableBody.removeChild(row);
+            });
+
+            directions[index] = direction === 'asc' ? 'desc' : 'asc';
+
+            newRows.forEach(function (newRow) {
+                tableBody.appendChild(newRow);
+            });
+        };
+
+        [].forEach.call(headers, function (header, index) {
+            header.addEventListener('click', function () {
+                sortColumn(index);
+            });
+        });
+    });
+</script>
+
+
+<script>
+    function filt() {
+        var temp_fil = document.getElementById("fil_select");
+        var column_name = temp_fil.value;
+        var temp_equal = document.getElementById("all_select");
+        var condition = temp_equal.value;
+        var field = document.getElementById("input_value").value;
+
+        const table = document.getElementById('table-id');
+        const tableBody = table.querySelector('tbody');
+        const rows = tableBody.querySelectorAll('#' + column_name);
+        var cel;
+        if (column_name == 'data') {
+            cel = 0;
+        } else if (column_name == 'name') {
+            cel = 1;
+        } else if (column_name == 'number') {
+            cel = 2;
+        } else if (column_name == 'distance') {
+            cel = 3;
+        }
+        var flag;
+        for (var j = 1; j <= rows.length; j++) {
+            flag = false;
+            if (isNaN(field) && (condition == 'in')) {
+                flag = (table.rows[j].cells[cel].innerHTML.toLowerCase().includes(field.toLowerCase()));
+            } else {
+
+                if (condition == '=') {
+                    flag = (table.rows[j].cells[cel].innerHTML.toLowerCase() == Number(field));
+                } else if (condition == '>') {
+                    flag = Number(table.rows[j].cells[cel].innerHTML) > Number(field);
+                } else if (condition == '<') {
+                    flag = Number(table.rows[j].cells[cel].innerHTML) < Number(field);
+                }
+            }
+            if (flag) {
+                table.rows[j].style.display = "";
+            } else {
+                table.rows[j].style.display = "none";
+            }
+        }
+
+    }
+</script>
+
+<script>
+    function addPagerToTables(tables, rowsPerPage = 10) {
+
+    tables =
+        typeof tables == "string"
+      ? document.querySelectorAll(tables)
+      : tables;
+
+    for (let table of tables)
+        addPagerToTable(table, rowsPerPage);
+
+}
+
+function addPagerToTable(table, rowsPerPage = 10) {
+
+    let tBodyRows = table.querySelectorAll('tBody tr');
+    let numPages = Math.ceil(tBodyRows.length/rowsPerPage);
+
+    let colCount =
+    [].slice.call(
+        table.querySelector('tr').cells
+    )
+    .reduce((a,b) => a + parseInt(b.colSpan), 0);
+
+    table
+    .createTFoot()
+    .insertRow()
+    .innerHTML = `<td colspan=${colCount}><div class="nav"></div></td>`;
+
+    if(numPages == 1)
+        return;
+
+    for(i = 0;i < numPages;i++) {
+
+        let pageNum = i + 1;
+
+        table.querySelector('.nav')
+        .insertAdjacentHTML(
+            'beforeend',
+            `<a href="#" rel="${i}">${pageNum}</a> `
+        );
+
+    }
+
+    changeToPage(table, 1, rowsPerPage);
+
+    for (let navA of table.querySelectorAll('.nav a'))
+        navA.addEventListener(
+            'click',
+            e => changeToPage(
+                table,
+                parseInt(e.target.innerHTML),
+                rowsPerPage
+            )
+        );
+
+}
+
+function changeToPage(table, page, rowsPerPage) {
+
+    let startItem = (page - 1) * rowsPerPage;
+    let endItem = startItem + rowsPerPage;
+    let navAs = table.querySelectorAll('.nav a');
+    let tBodyRows = table.querySelectorAll('tBody tr');
+
+    for (let nix = 0; nix < navAs.length; nix++) {
+
+        if (nix == page - 1)
+            navAs[nix].classList.add('active');
+        else
+            navAs[nix].classList.remove('active');
+
+        for (let trix = 0; trix < tBodyRows.length; trix++)
+            tBodyRows[trix].style.display =
+                (trix >= startItem && trix < endItem)
+                ? 'table-row'
+                : 'none';
+
+    }
+
+}
+addPagerToTables('#table-id', 10);
+</script>
+
+
+<!--    <script>-->
+<!--        getPagination('#table-id');-->
+
+<!--        function getPagination(table) {-->
+<!--            var lastPage = 1;-->
+
+<!--            $('#maxRows')-->
+<!--                .on('change', function (evt) {-->
+
+
+<!--                    lastPage = 1;-->
+<!--                    $('.pagination')-->
+<!--                        .find('li')-->
+<!--                        .slice(1, -1)-->
+<!--                        .remove();-->
+<!--                    var trnum = 0;-->
+<!--                    var maxRows = parseInt($(this).val());-->
+
+<!--                    if (maxRows == 5000) {-->
+<!--                        $('.pagination').hide();-->
+<!--                    } else {-->
+<!--                        $('.pagination').show();-->
+<!--                    }-->
+
+<!--                    var totalRows = $(table + ' tbody tr').length;-->
+<!--                    $(table + ' tr:gt(0)').each(function () {-->
+
+<!--                        trnum++;-->
+<!--                        if (trnum > maxRows) {-->
+
+
+<!--                            $(this).hide();-->
+<!--                        }-->
+<!--                        if (trnum <= maxRows) {-->
+<!--                            $(this).show();-->
+<!--                        }-->
+<!--                    });-->
+<!--                    if (totalRows > maxRows) {-->
+<!--                        var pagenum = Math.ceil(totalRows / maxRows);-->
+<!--                        //-->
+<!--                        for (var i = 1; i <= pagenum;) {-->
+<!--                            $('.pagination #prev')-->
+<!--                                .before(-->
+<!--                                    '<li data-page="' +-->
+<!--                                    i +-->
+<!--                                    '">\-->
+<!--                                      <span>' +-->
+<!--                                    i++ +-->
+<!--                                    '<span class="sr-only">(current)</span></span>\-->
+<!--                                    </li>'-->
+<!--                                )-->
+<!--                                .show();-->
+<!--                        }-->
+<!--                    }-->
+<!--                    $('.pagination [data-page="1"]').addClass('active');-->
+<!--                    $('.pagination li').on('click', function (evt) {-->
+<!--                        evt.stopImmediatePropagation();-->
+<!--                        evt.preventDefault();-->
+<!--                        var pageNum = $(this).attr('data-page');-->
+
+<!--                        var maxRows = parseInt($('#maxRows').val());-->
+
+<!--                        if (pageNum == 'prev') {-->
+<!--                            if (lastPage == 1) {-->
+<!--                                return;-->
+<!--                            }-->
+<!--                            pageNum = &#45;&#45;lastPage;-->
+<!--                        }-->
+<!--                        if (pageNum == 'next') {-->
+<!--                            if (lastPage == $('.pagination li').length - 2) {-->
+<!--                                return;-->
+<!--                            }-->
+<!--                            pageNum = ++lastPage;-->
+<!--                        }-->
+
+<!--                        lastPage = pageNum;-->
+<!--                        var trIndex = 0; //-->
+<!--                        $('.pagination li').removeClass('active');-->
+<!--                        $('.pagination [data-page="' + lastPage + '"]').addClass('active');-->
+
+<!--                        limitPagging();-->
+<!--                        $(table + ' tr:gt(0)').each(function () {-->
+<!--                            trIndex++;-->
+<!--                            if (-->
+<!--                                trIndex > maxRows * pageNum ||-->
+<!--                                trIndex <= maxRows * pageNum - maxRows-->
+<!--                            ) {-->
+<!--                                $(this).hide();-->
+<!--                            } else {-->
+<!--                                $(this).show();-->
+<!--                            }-->
+<!--                        });-->
+<!--                    });-->
+<!--                    limitPagging();-->
+<!--                })-->
+<!--                .val(5)-->
+<!--                .change();-->
+
+
+<!--        }-->
+
+<!--        function limitPagging() {-->
+
+<!--            if ($('.pagination li').length > 7) {-->
+<!--                if ($('.pagination li.active').attr('data-page') <= 3) {-->
+<!--                    $('.pagination li:gt(5)').hide();-->
+<!--                    $('.pagination li:lt(5)').show();-->
+<!--                    $('.pagination [data-page="next"]').show();-->
+<!--                }-->
+<!--                if ($('.pagination li.active').attr('data-page') > 3) {-->
+<!--                    $('.pagination li:gt(0)').hide();-->
+<!--                    $('.pagination [data-page="next"]').show();-->
+<!--                    for (let i = (parseInt($('.pagination li.active').attr('data-page')) - 2); i <= (parseInt($('.pagination li.active').attr('data-page')) + 2); i++) {-->
+<!--                        $('.pagination [data-page="' + i + '"]').show();-->
+
+<!--                    }-->
+
+<!--                }-->
+<!--            }-->
+<!--        }-->
+
+<!--        $(function () {-->
+<!--            $('table tr:eq(0)').prepend('<th> ID </th>');-->
+
+<!--            var id = 0;-->
+
+<!--            $('table tr:gt(0)').each(function () {-->
+<!--                id++;-->
+<!--                $(this).prepend('<td>' + id + '</td>');-->
+<!--            });-->
+<!--        });-->
+
+<!--    </script>-->
+
 
 </body>
 </html>
