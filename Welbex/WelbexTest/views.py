@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Table, TableFrom
+from .models import Table
 
 
 # Create your views here.
