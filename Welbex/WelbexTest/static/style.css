@@ -1,3 +1,4 @@
+`
 .table_sort table {
     border-collapse: collapse;
 }
@@ -32,5 +33,4 @@ th.sorted[data-order="-1"]::after {
 }
 
 }
-
 
